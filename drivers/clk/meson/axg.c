@@ -775,6 +775,42 @@ static struct clk_regmap axg_sd_emmc_c_clk0 = {
 	},
 };
 
+#define SD_EMMC_CLOCK 0
+static const char * const axg_sd_emmc_ext_clk0_parent_names[] = {
+	"sd_emmc_c_clk0", "fclk_div2",
+};
+
+static struct clk_regmap axg_sd_emmc_c_ext_clk0_sel = {
+	.data = &(struct clk_regmap_mux_data){
+		.offset = SD_EMMC_CLOCK,
+		.mask = 0x3,
+		.shift = 6,
+	},
+	.hw.init = &(struct clk_init_data) {
+		.name = "sd_emmc_c_ext_clk0_sel",
+		.ops = &clk_regmap_mux_ops,
+		.parent_names = axg_sd_emmc_ext_clk0_parent_names,
+		.num_parents = ARRAY_SIZE(axg_sd_emmc_ext_clk0_parent_names),
+		.flags = CLK_SET_RATE_PARENT,
+	},
+};
+
+static struct clk_regmap axg_sd_emmc_c_ext_clk0_div = {
+	.data = &(struct clk_regmap_div_data){
+		.offset = SD_EMMC_CLOCK,
+		.shift = 0,
+		.width = 6,
+		.flags = CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_ONE_BASED,
+	},
+	.hw.init = &(struct clk_init_data) {
+		.name = "sd_emmc_c_ext_clk0_div",
+		.ops = &clk_regmap_divider_ops,
+		.parent_names = (const char *[]){ "sd_emmc_c_ext_clk0_sel" },
+		.num_parents = 1,
+		.flags = CLK_SET_RATE_PARENT,
+	},
+};
+
 /* Everything Else (EE) domain gates */
 static MESON_GATE(axg_ddr, HHI_GCLK_MPEG0, 0);
 static MESON_GATE(axg_audio_locker, HHI_GCLK_MPEG0, 2);
@@ -895,6 +931,8 @@ static struct clk_hw_onecell_data axg_hw_onecell_data = {
 		[CLKID_SD_EMMC_C_CLK0_SEL]	= &axg_sd_emmc_c_clk0_sel.hw,
 		[CLKID_SD_EMMC_C_CLK0_DIV]	= &axg_sd_emmc_c_clk0_div.hw,
 		[CLKID_SD_EMMC_C_CLK0]		= &axg_sd_emmc_c_clk0.hw,
+		[CLKID_SD_EMMC_C_EXT_CLK0_SEL]	= &axg_sd_emmc_c_ext_clk0_sel.hw,
+		[CLKID_SD_EMMC_C_EXT_CLK0_DIV]	= &axg_sd_emmc_c_ext_clk0_div.hw,
 		[CLKID_MPLL0_DIV]		= &axg_mpll0_div.hw,
 		[CLKID_MPLL1_DIV]		= &axg_mpll1_div.hw,
 		[CLKID_MPLL2_DIV]		= &axg_mpll2_div.hw,
@@ -963,9 +1001,11 @@ static struct clk_regmap *const axg_clk_regmaps[] = {
 	&axg_mpeg_clk_div,
 	&axg_sd_emmc_b_clk0_div,
 	&axg_sd_emmc_c_clk0_div,
+	&axg_sd_emmc_c_ext_clk0_div,
 	&axg_mpeg_clk_sel,
 	&axg_sd_emmc_b_clk0_sel,
 	&axg_sd_emmc_c_clk0_sel,
+	&axg_sd_emmc_c_ext_clk0_sel,
 	&axg_mpll0,
 	&axg_mpll1,
 	&axg_mpll2,
@@ -1002,7 +1042,7 @@ static int axg_clkc_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct resource *res;
 	void __iomem *clk_base = NULL;
-	struct regmap *map;
+	struct regmap *map, *map_emmc;
 	int ret, i;
 
 	/* Get the hhi system controller node if available */
@@ -1035,10 +1075,19 @@ static int axg_clkc_probe(struct platform_device *pdev)
 		if (IS_ERR(map))
 			return PTR_ERR(map);
 	}
+	map_emmc = syscon_regmap_lookup_by_compatible("amlogic,meson-axg-mmc-clk-syscon");
+	if (IS_ERR(map_emmc)) {
+		dev_err(dev,
+			"failed to get emmc regmap\n");
+		return PTR_ERR(map_emmc);
+	}
 
 	/* Populate regmap for the regmap backed clocks */
 	for (i = 0; i < ARRAY_SIZE(axg_clk_regmaps); i++)
 		axg_clk_regmaps[i]->map = map;
+	/* Fixup EMMC/NAND clock map */
+	axg_sd_emmc_c_ext_clk0_sel.map = map_emmc;
+	axg_sd_emmc_c_ext_clk0_div.map = map_emmc;
 
 	for (i = 0; i < axg_hw_onecell_data.num; i++) {
 		/* array might be sparse */

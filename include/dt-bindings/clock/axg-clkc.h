@@ -68,5 +68,7 @@
 #define CLKID_SD_EMMC_B_CLK0			59
 #define CLKID_SD_EMMC_C_CLK0			60
 #define CLKID_HIFI_PLL				69
+#define CLKID_SD_EMMC_C_EXT_CLK0_SEL		76
+#define CLKID_SD_EMMC_C_EXT_CLK0_DIV		77
 
 #endif /* __AXG_CLKC_H */
