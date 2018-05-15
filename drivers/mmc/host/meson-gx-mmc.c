@@ -483,13 +483,10 @@ static int meson_mmc_clk_set(struct meson_host *host, struct mmc_ios *ios)
 static int meson_mmc_clk_init(struct meson_host *host)
 {
 	struct clk_init_data init;
-	struct clk_mux *mux;
-	struct clk_divider *div;
 	struct meson_mmc_phase *core, *tx, *rx;
 	struct clk *clk;
 	char clk_name[32];
 	int i, ret = 0;
-	const char *mux_parent_names[MUX_CLK_NUM_PARENTS];
 	const char *clk_parent[1];
 	u32 clk_reg;
 
@@ -499,63 +496,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	clk_reg |= CLK_DIV_MASK;
 	writel(clk_reg, host->regs + SD_EMMC_CLOCK);
 
-	/* get the mux parents */
-	for (i = 0; i < MUX_CLK_NUM_PARENTS; i++) {
-		struct clk *clk;
-		char name[16];
-
-		snprintf(name, sizeof(name), "clkin%d", i);
-		clk = devm_clk_get(host->dev, name);
-		if (IS_ERR(clk)) {
-			if (clk != ERR_PTR(-EPROBE_DEFER))
-				dev_err(host->dev, "Missing clock %s\n", name);
-			return PTR_ERR(clk);
-		}
-
-		mux_parent_names[i] = __clk_get_name(clk);
-	}
-
-	/* create the mux */
-	mux = devm_kzalloc(host->dev, sizeof(*mux), GFP_KERNEL);
-	if (!mux)
-		return -ENOMEM;
-
-	snprintf(clk_name, sizeof(clk_name), "%s#mux", dev_name(host->dev));
-	init.name = clk_name;
-	init.ops = &clk_mux_ops;
-	init.flags = 0;
-	init.parent_names = mux_parent_names;
-	init.num_parents = MUX_CLK_NUM_PARENTS;
-
-	mux->reg = host->regs + SD_EMMC_CLOCK;
-	mux->shift = __ffs(CLK_SRC_MASK);
-	mux->mask = CLK_SRC_MASK >> mux->shift;
-	mux->hw.init = &init;
-
-	clk = devm_clk_register(host->dev, &mux->hw);
-	if (WARN_ON(IS_ERR(clk)))
-		return PTR_ERR(clk);
-
-	/* create the divider */
-	div = devm_kzalloc(host->dev, sizeof(*div), GFP_KERNEL);
-	if (!div)
-		return -ENOMEM;
-
-	snprintf(clk_name, sizeof(clk_name), "%s#div", dev_name(host->dev));
-	init.name = clk_name;
-	init.ops = &clk_divider_ops;
-	init.flags = CLK_SET_RATE_PARENT;
-	clk_parent[0] = __clk_get_name(clk);
-	init.parent_names = clk_parent;
-	init.num_parents = 1;
-
-	div->reg = host->regs + SD_EMMC_CLOCK;
-	div->shift = __ffs(CLK_DIV_MASK);
-	div->width = __builtin_popcountl(CLK_DIV_MASK);
-	div->hw.init = &init;
-	div->flags = CLK_DIVIDER_ONE_BASED;
-
-	clk = devm_clk_register(host->dev, &div->hw);
+	clk = devm_clk_get(host->dev, "device");
 	if (WARN_ON(IS_ERR(clk)))
 		return PTR_ERR(clk);
 
