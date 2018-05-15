@@ -791,7 +791,6 @@ static struct clk_regmap axg_sd_emmc_c_ext_clk0_sel = {
 		.ops = &clk_regmap_mux_ops,
 		.parent_names = axg_sd_emmc_ext_clk0_parent_names,
 		.num_parents = ARRAY_SIZE(axg_sd_emmc_ext_clk0_parent_names),
-		.flags = CLK_SET_RATE_PARENT,
 	},
 };
 
