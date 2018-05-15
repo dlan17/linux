@@ -135,13 +135,12 @@
 				interrupts = <GIC_SPI 217 IRQ_TYPE_EDGE_RISING>;
 				status = "disabled";
 				clocks = <&clkc CLKID_SD_EMMC_B>,
-					<&clkc CLKID_SD_EMMC_B_CLK0>,
-					<&clkc CLKID_FCLK_DIV2>;
-				clock-names = "core", "clkin0", "clkin1";
+					<&clkc CLKID_SD_EMMC_B_CLK0>;
+				clock-names = "core", "device";
 				resets = <&reset RESET_SD_EMMC_B>;
 			};
 
-			mmc_clk_syscon: clk-syscon@7000 {
+			mmc_c_clk_syscon: clk-syscon@7000 {
 				compatible = "amlogic,meson-axg-mmc-clk-syscon", "syscon", "simple-mfd";
 				reg =  <0x0 0x7000 0x0 0x4>;
 			};
@@ -152,10 +151,10 @@
 				interrupts = <GIC_SPI 218 IRQ_TYPE_EDGE_RISING>;
 				status = "disabled";
 				clocks = <&clkc CLKID_SD_EMMC_C>,
-					<&clkc CLKID_SD_EMMC_C_CLK0>,
-					<&clkc CLKID_FCLK_DIV2>;
-				clock-names = "core", "clkin0", "clkin1";
+					<&clkc CLKID_SD_EMMC_C_EXT_CLK0_DIV>;
+				clock-names = "core", "device";
 				resets = <&reset RESET_SD_EMMC_C>;
+				amlogic,clk-syscon = <&mmc_c_clk_syscon>;
 			};
 
 			nand: nfc@7800 {
@@ -166,7 +165,7 @@
 				clocks = <&clkc CLKID_SD_EMMC_C>,
 					 <&clkc CLKID_SD_EMMC_C_EXT_CLK0_DIV>;
 				clock-names = "core", "device";
-				amlogic,clk-syscon = <&mmc_clk_syscon>;
+				amlogic,clk-syscon = <&mmc_c_clk_syscon>;
 			};
 		};
 

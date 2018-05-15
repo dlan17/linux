@@ -47,7 +47,6 @@
 	emmc_pwrseq: emmc-pwrseq {
 		compatible = "mmc-pwrseq-emmc";
 		reset-gpios = <&gpio BOOT_9 GPIO_ACTIVE_LOW>;
-		status = "disabled";
 	};
 
 	sdio_pwrseq: sdio-pwrseq {
@@ -104,7 +103,7 @@
 
 /* emmc storage */
 &sd_emmc_c {
-	status = "disabled";
+	status = "okay";
 	pinctrl-0 = <&emmc_pins>;
 	pinctrl-1 = <&emmc_clk_gate_pins>;
 	pinctrl-names = "default", "clk-gate";
@@ -124,7 +123,7 @@
 
 /* wifi module */
 &sd_emmc_b {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
@@ -150,7 +149,7 @@
 };
 
 &nand {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
