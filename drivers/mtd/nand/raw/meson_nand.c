@@ -164,9 +164,8 @@ struct meson_nfc_param {
 
 struct meson_nfc {
 	struct nand_hw_control controller;
-	struct clk *clk_gate;
-	struct clk *clk_master;
-	struct clk *clk_nand;
+	struct clk *clk_core;
+	struct clk *clk_device;
 
 	struct device *dev;
 	void __iomem *reg_base;
@@ -940,48 +939,42 @@ static int meson_nfc_clk_init(struct meson_nfc *nfc)
 {
 	int ret;
 
-	nfc->clk_gate = devm_clk_get(nfc->dev, "mod_gate");
-	if (IS_ERR(nfc->clk_gate)) {
-		dev_err(nfc->dev, "failed to get mod_gate\n");
-		return PTR_ERR(nfc->clk_gate);
+	nfc->clk_core = devm_clk_get(nfc->dev, "core");
+	if (IS_ERR(nfc->clk_core)) {
+		dev_err(nfc->dev, "failed to get core clk\n");
+		return PTR_ERR(nfc->clk_core);
 	}
 
-	nfc->clk_master = devm_clk_get(nfc->dev, "clk_master");
-	if (IS_ERR(nfc->clk_master)) {
-		dev_err(nfc->dev, "failed to get clk_master\n");
-		return PTR_ERR(nfc->clk_master);
+	nfc->clk_device= devm_clk_get(nfc->dev, "device");
+	if (IS_ERR(nfc->clk_device)) {
+		dev_err(nfc->dev, "failed to get device clk\n");
+		return PTR_ERR(nfc->clk_device);
 	}
 
-	nfc->clk_nand = devm_clk_get(nfc->dev, "clk_nand");
-	if (IS_ERR(nfc->clk_nand)) {
-		dev_err(nfc->dev, "failed to get clk_nand\n");
-		return PTR_ERR(nfc->clk_nand);
-	}
-
-	ret = clk_prepare_enable(nfc->clk_gate);
+	ret = clk_prepare_enable(nfc->clk_core);
 	if (ret) {
-		dev_err(nfc->dev, "failed to set nand gate\n");
+		dev_err(nfc->dev, "failed to enable core clk\n");
 		return ret;
 	}
 
-	ret = clk_prepare_enable(nfc->clk_nand);
+	ret = clk_prepare_enable(nfc->clk_device);
 	if (ret) {
-		dev_err(nfc->dev, "failed to enable nand clk\n");
+		dev_err(nfc->dev, "failed to enable device clk\n");
 		goto clk_enbale_error;
 	}
 
 	return 0;
 
 clk_enbale_error:
-	clk_disable_unprepare(nfc->clk_gate);
+	clk_disable_unprepare(nfc->clk_core);
 
 	return ret;
 }
 
 static void meson_nfc_disable_clk(struct meson_nfc *nfc)
 {
-	clk_disable_unprepare(nfc->clk_nand);
-	clk_disable_unprepare(nfc->clk_gate);
+	clk_disable_unprepare(nfc->clk_device);
+	clk_disable_unprepare(nfc->clk_core);
 }
 
 static int meson_nfc_buffer_init(struct mtd_info *mtd)
@@ -1021,7 +1014,7 @@ static int meson_nfc_calc_set_timing(struct meson_nfc *nfc,
 				CLK_ALWAYS_ON);
 
 	div = DIV_ROUND_UP((rc_min / 1000), NFC_CLK_CYCLE);
-	ret = clk_set_rate(nfc->clk_nand, 1000000000 / div);
+	ret = clk_set_rate(nfc->clk_device, 1000000000 / div);
 	if (ret) {
 		dev_err(nfc->dev, "failed to set nand clock rate\n");
 		return ret;
