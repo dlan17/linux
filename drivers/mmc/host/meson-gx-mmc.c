@@ -27,6 +27,7 @@
 #include <linux/ioport.h>
 #include <linux/spinlock.h>
 #include <linux/dma-mapping.h>
+#include <linux/mfd/syscon.h>
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sdio.h>
@@ -34,6 +35,7 @@
 #include <linux/io.h>
 #include <linux/clk.h>
 #include <linux/clk-provider.h>
+#include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/bitfield.h>
@@ -156,6 +158,7 @@ struct meson_host {
 	struct	mmc_command	*cmd;
 
 	spinlock_t lock;
+	struct regmap *reg_clk;
 	void __iomem *regs;
 	struct clk *core_clk;
 	struct clk *mmc_clk;
@@ -201,7 +204,7 @@ struct meson_host {
 
 struct meson_mmc_phase {
 	struct clk_hw hw;
-	void __iomem *reg;
+	struct regmap *reg;
 	unsigned long phase_mask;
 	unsigned long delay_mask;
 	unsigned int delay_step_ps;
@@ -217,7 +220,8 @@ static int meson_mmc_clk_get_phase(struct clk_hw *hw)
 		int degrees;
 	u32 val;
 
-	val = readl(mmc->reg);
+	regmap_read(mmc->reg, SD_EMMC_CLOCK, &val);
+
 	p = (val & mmc->phase_mask) >> __ffs(mmc->phase_mask);
 	degrees = p * 360 / phase_num;
 
@@ -236,18 +240,18 @@ static void meson_mmc_apply_phase_delay(struct meson_mmc_phase *mmc,
 					unsigned int phase,
 					unsigned int delay)
 {
-	u32 val;
+	u32 val, mask;
 
-	val = readl(mmc->reg);
-	val &= ~mmc->phase_mask;
-	val |= phase << __ffs(mmc->phase_mask);
+	val = phase << __ffs(mmc->phase_mask);
+	mask = mmc->phase_mask;
 
 	if (mmc->delay_mask) {
-		val &= ~mmc->delay_mask;
 		val |= delay << __ffs(mmc->delay_mask);
+		mask |= mmc->delay_mask;
 	}
 
-	writel(val, mmc->reg);
+	regmap_update_bits(mmc->reg, SD_EMMC_CLOCK,
+				mask, val);
 }
 
 static int meson_mmc_clk_set_phase(struct clk_hw *hw, int degrees)
@@ -486,15 +490,12 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	struct meson_mmc_phase *core, *tx, *rx;
 	struct clk *clk;
 	char clk_name[32];
-	int i, ret = 0;
+	int ret;
 	const char *clk_parent[1];
-	u32 clk_reg;
 
 	/* init SD_EMMC_CLOCK to sane defaults w/min clock rate */
-	clk_reg = 0;
-	clk_reg |= CLK_ALWAYS_ON(host);
-	clk_reg |= CLK_DIV_MASK;
-	writel(clk_reg, host->regs + SD_EMMC_CLOCK);
+	regmap_write(host->reg_clk, SD_EMMC_CLOCK,
+			CLK_ALWAYS_ON(host) | CLK_DIV_MASK);
 
 	clk = devm_clk_get(host->dev, "device");
 	if (WARN_ON(IS_ERR(clk)))
@@ -513,7 +514,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	init.parent_names = clk_parent;
 	init.num_parents = 1;
 
-	core->reg = host->regs + SD_EMMC_CLOCK;
+	core->reg = host->reg_clk;
 	core->phase_mask = CLK_CORE_PHASE_MASK;
 	core->hw.init = &init;
 
@@ -534,7 +535,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	init.parent_names = clk_parent;
 	init.num_parents = 1;
 
-	tx->reg = host->regs + SD_EMMC_CLOCK;
+	tx->reg = host->reg_clk;
 	tx->phase_mask = CLK_TX_PHASE_MASK;
 	tx->delay_mask = CLK_TX_DELAY_MASK(host);
 	tx->delay_step_ps = CLK_DELAY_STEP_PS;
@@ -557,7 +558,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	init.parent_names = clk_parent;
 	init.num_parents = 1;
 
-	rx->reg = host->regs + SD_EMMC_CLOCK;
+	rx->reg = host->reg_clk;
 	rx->phase_mask = CLK_RX_PHASE_MASK;
 	rx->delay_mask = CLK_RX_DELAY_MASK(host);
 	rx->delay_step_ps = CLK_DELAY_STEP_PS;
@@ -1132,6 +1133,14 @@ static int meson_mmc_probe(struct platform_device *pdev)
 	dev_set_drvdata(&pdev->dev, host);
 
 	spin_lock_init(&host->lock);
+
+	host->reg_clk = syscon_regmap_lookup_by_phandle(host->dev->of_node,
+						      "amlogic,clk-syscon");
+	if (IS_ERR(host->reg_clk)) {
+		dev_err(&pdev->dev, "fail to get clk-syscon\n");
+		ret = PTR_ERR(host->reg_clk);
+		goto free_host;
+	}
 
 	/* Get regulators and the supported OCR mask */
 	host->vqmmc_enabled = false;
