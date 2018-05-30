@@ -683,6 +683,7 @@ static const char * const axg_sd_emmc_clk0_parent_names[] = {
 	 */
 };
 
+#define SD_EMMC_CLOCK 0
 /* SDcard clock */
 static struct clk_regmap axg_sd_emmc_b_clk0_sel = {
 	.data = &(struct clk_regmap_mux_data){
@@ -724,6 +725,36 @@ static struct clk_regmap axg_sd_emmc_b_clk0 = {
 		.name = "sd_emmc_b_clk0",
 		.ops = &clk_regmap_gate_ops,
 		.parent_names = (const char *[]){ "sd_emmc_b_clk0_div" },
+		.num_parents = 1,
+		.flags = CLK_SET_RATE_PARENT,
+	},
+};
+
+static struct clk_regmap axg_sd_emmc_b_ext_clk0_sel = {
+	.data = &(struct clk_regmap_mux_data){
+		.offset = SD_EMMC_CLOCK,
+		.mask = 0x3,
+		.shift = 6,
+	},
+	.hw.init = &(struct clk_init_data) {
+		.name = "sd_emmc_b_ext_clk0_sel",
+		.ops = &clk_regmap_mux_ops,
+		.parent_names = (const char *[]) { "sd_emmc_b_clk0", "fclk_div2" },
+		.num_parents = 2,
+	},
+};
+
+static struct clk_regmap axg_sd_emmc_b_ext_clk0_div = {
+	.data = &(struct clk_regmap_div_data){
+		.offset = SD_EMMC_CLOCK,
+		.shift = 0,
+		.width = 6,
+		.flags = CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_ONE_BASED,
+	},
+	.hw.init = &(struct clk_init_data) {
+		.name = "sd_emmc_b_ext_clk0_div",
+		.ops = &clk_regmap_divider_ops,
+		.parent_names = (const char *[]){ "sd_emmc_b_ext_clk0_sel" },
 		.num_parents = 1,
 		.flags = CLK_SET_RATE_PARENT,
 	},
@@ -775,11 +806,6 @@ static struct clk_regmap axg_sd_emmc_c_clk0 = {
 	},
 };
 
-#define SD_EMMC_CLOCK 0
-static const char * const axg_sd_emmc_ext_clk0_parent_names[] = {
-	"sd_emmc_c_clk0", "fclk_div2",
-};
-
 static struct clk_regmap axg_sd_emmc_c_ext_clk0_sel = {
 	.data = &(struct clk_regmap_mux_data){
 		.offset = SD_EMMC_CLOCK,
@@ -789,8 +815,8 @@ static struct clk_regmap axg_sd_emmc_c_ext_clk0_sel = {
 	.hw.init = &(struct clk_init_data) {
 		.name = "sd_emmc_c_ext_clk0_sel",
 		.ops = &clk_regmap_mux_ops,
-		.parent_names = axg_sd_emmc_ext_clk0_parent_names,
-		.num_parents = ARRAY_SIZE(axg_sd_emmc_ext_clk0_parent_names),
+		.parent_names = (const char *[]) { "sd_emmc_c_clk0", "fclk_div2" },
+		.num_parents = 2,
 	},
 };
 
@@ -927,6 +953,8 @@ static struct clk_hw_onecell_data axg_hw_onecell_data = {
 		[CLKID_SD_EMMC_B_CLK0_SEL]	= &axg_sd_emmc_b_clk0_sel.hw,
 		[CLKID_SD_EMMC_B_CLK0_DIV]	= &axg_sd_emmc_b_clk0_div.hw,
 		[CLKID_SD_EMMC_B_CLK0]		= &axg_sd_emmc_b_clk0.hw,
+		[CLKID_SD_EMMC_B_EXT_CLK0_SEL]	= &axg_sd_emmc_b_ext_clk0_sel.hw,
+		[CLKID_SD_EMMC_B_EXT_CLK0_DIV]	= &axg_sd_emmc_b_ext_clk0_div.hw,
 		[CLKID_SD_EMMC_C_CLK0_SEL]	= &axg_sd_emmc_c_clk0_sel.hw,
 		[CLKID_SD_EMMC_C_CLK0_DIV]	= &axg_sd_emmc_c_clk0_div.hw,
 		[CLKID_SD_EMMC_C_CLK0]		= &axg_sd_emmc_c_clk0.hw,
@@ -1000,11 +1028,9 @@ static struct clk_regmap *const axg_clk_regmaps[] = {
 	&axg_mpeg_clk_div,
 	&axg_sd_emmc_b_clk0_div,
 	&axg_sd_emmc_c_clk0_div,
-	&axg_sd_emmc_c_ext_clk0_div,
 	&axg_mpeg_clk_sel,
 	&axg_sd_emmc_b_clk0_sel,
 	&axg_sd_emmc_c_clk0_sel,
-	&axg_sd_emmc_c_ext_clk0_sel,
 	&axg_mpll0,
 	&axg_mpll1,
 	&axg_mpll2,
@@ -1036,12 +1062,43 @@ static const struct regmap_config clkc_regmap_config = {
 	.reg_stride     = 4,
 };
 
+static int axg_emmc_clkc_register(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct regmap *map_b, *map_c;
+
+	map_b = syscon_regmap_lookup_by_phandle(dev->of_node,
+						"amlogic,meson-mmc-clkc-b");
+	if (IS_ERR(map_b)) {
+		dev_err(dev,
+			"failed to get emmc port B regmap\n");
+		return PTR_ERR(map_b);
+	}
+
+	map_c = syscon_regmap_lookup_by_phandle(dev->of_node,
+						"amlogic,meson-mmc-clkc-c");
+	if (IS_ERR(map_c)) {
+		dev_err(dev,
+			"failed to get emmc port C regmap\n");
+		return PTR_ERR(map_c);
+	}
+
+	/* Fixup EMMC/NAND clock map */
+	axg_sd_emmc_b_ext_clk0_sel.map = map_b;
+	axg_sd_emmc_b_ext_clk0_div.map = map_b;
+
+	axg_sd_emmc_c_ext_clk0_sel.map = map_c;
+	axg_sd_emmc_c_ext_clk0_div.map = map_c;
+
+	return 0;
+}
+
 static int axg_clkc_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct resource *res;
 	void __iomem *clk_base = NULL;
-	struct regmap *map, *map_emmc;
+	struct regmap *map;
 	int ret, i;
 
 	/* Get the hhi system controller node if available */
@@ -1074,19 +1131,14 @@ static int axg_clkc_probe(struct platform_device *pdev)
 		if (IS_ERR(map))
 			return PTR_ERR(map);
 	}
-	map_emmc = syscon_regmap_lookup_by_compatible("amlogic,meson-axg-mmc-clk-syscon");
-	if (IS_ERR(map_emmc)) {
-		dev_err(dev,
-			"failed to get emmc regmap\n");
-		return PTR_ERR(map_emmc);
-	}
+
+	ret = axg_emmc_clkc_register(pdev);
+	if (ret)
+		return ret;
 
 	/* Populate regmap for the regmap backed clocks */
 	for (i = 0; i < ARRAY_SIZE(axg_clk_regmaps); i++)
 		axg_clk_regmaps[i]->map = map;
-	/* Fixup EMMC/NAND clock map */
-	axg_sd_emmc_c_ext_clk0_sel.map = map_emmc;
-	axg_sd_emmc_c_ext_clk0_div.map = map_emmc;
 
 	for (i = 0; i < axg_hw_onecell_data.num; i++) {
 		/* array might be sparse */
