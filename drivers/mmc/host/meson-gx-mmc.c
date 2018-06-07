@@ -55,6 +55,8 @@
 #define   CLK_V3_RX_DELAY_MASK GENMASK(27, 22)
 #define   CLK_V3_ALWAYS_ON BIT(28)
 
+#define   CLK_ENABLE_NAND BIT(31)
+
 #define   CLK_DELAY_STEP_PS 200
 #define   CLK_PHASE_STEP 30
 #define   CLK_PHASE_POINT_NUM (360 / CLK_PHASE_STEP)
@@ -135,6 +137,7 @@
 #define SD_EMMC_DESC_CHAIN_MODE BIT(1)
 
 #define MUX_CLK_NUM_PARENTS 2
+#define MMC_INTERNAL_CLK_MAX 2
 
 struct meson_mmc_data {
 	unsigned int tx_delay_mask;
@@ -480,21 +483,21 @@ static int meson_mmc_clk_set(struct meson_host *host, struct mmc_ios *ios)
  * generating the MMC clock.  Use the clock framework to create and
  * manage these clocks.
  */
-static int meson_mmc_clk_init(struct meson_host *host)
+static struct clk *mmc_ext_clk[MMC_INTERNAL_CLK_MAX];
+static struct clk_onecell_data mmc_clk_data;
+static int meson_mmc_clk_register(struct meson_host *host)
 {
 	struct clk_init_data init;
 	struct clk_mux *mux;
 	struct clk_divider *div;
-	struct meson_mmc_phase *core, *tx, *rx;
-	struct clk *clk;
 	char clk_name[32];
-	int i, ret = 0;
+	int i;
 	const char *mux_parent_names[MUX_CLK_NUM_PARENTS];
 	const char *clk_parent[1];
 	u32 clk_reg;
 
 	/* init SD_EMMC_CLOCK to sane defaults w/min clock rate */
-	clk_reg = 0;
+	clk_reg = CLK_ENABLE_NAND;
 	clk_reg |= CLK_ALWAYS_ON(host);
 	clk_reg |= CLK_DIV_MASK;
 	writel(clk_reg, host->regs + SD_EMMC_CLOCK);
@@ -532,9 +535,9 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	mux->mask = CLK_SRC_MASK >> mux->shift;
 	mux->hw.init = &init;
 
-	clk = devm_clk_register(host->dev, &mux->hw);
-	if (WARN_ON(IS_ERR(clk)))
-		return PTR_ERR(clk);
+	mmc_ext_clk[0] = devm_clk_register(host->dev, &mux->hw);
+	if (WARN_ON(IS_ERR(mmc_ext_clk[0])))
+		return PTR_ERR(mmc_ext_clk[0]);
 
 	/* create the divider */
 	div = devm_kzalloc(host->dev, sizeof(*div), GFP_KERNEL);
@@ -545,7 +548,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	init.name = clk_name;
 	init.ops = &clk_divider_ops;
 	init.flags = CLK_SET_RATE_PARENT;
-	clk_parent[0] = __clk_get_name(clk);
+	clk_parent[0] = __clk_get_name(mmc_ext_clk[0]);
 	init.parent_names = clk_parent;
 	init.num_parents = 1;
 
@@ -555,9 +558,41 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	div->hw.init = &init;
 	div->flags = CLK_DIVIDER_ONE_BASED;
 
-	clk = devm_clk_register(host->dev, &div->hw);
-	if (WARN_ON(IS_ERR(clk)))
-		return PTR_ERR(clk);
+	mmc_ext_clk[1] = devm_clk_register(host->dev, &div->hw);
+	if (WARN_ON(IS_ERR(mmc_ext_clk[1])))
+		return PTR_ERR(mmc_ext_clk[1]);
+
+	mmc_clk_data.clks = mmc_ext_clk;
+	mmc_clk_data.clk_num = ARRAY_SIZE(mmc_ext_clk);
+	of_clk_add_provider(host->dev->of_node, of_clk_src_onecell_get,
+				&mmc_clk_data);
+
+	return 0;
+}
+
+static int meson_mmc_clk_init(struct meson_host *host)
+{
+	struct clk_init_data init;
+	struct meson_mmc_phase *core, *tx, *rx;
+	char clk_name[32];
+	int ret = 0;
+	const char *clk_parent[1];
+	u32 clk_reg;
+
+	host->core_clk = devm_clk_get(host->dev, "core");
+	if (IS_ERR(host->core_clk)) {
+		return PTR_ERR(host->core_clk);
+	}
+
+	ret = clk_prepare_enable(host->core_clk);
+	if (ret) {
+		dev_dbg(host->dev, "fail to enable core clock\n");
+		return ret;
+	}
+
+	/* clear BIT(31) to enable eMMC */
+	clk_reg = readl(host->regs + SD_EMMC_CLOCK) & ~CLK_ENABLE_NAND;
+	writel(clk_reg, host->regs + SD_EMMC_CLOCK);
 
 	/* create the mmc core clock */
 	core = devm_kzalloc(host->dev, sizeof(*core), GFP_KERNEL);
@@ -568,7 +603,7 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	init.name = clk_name;
 	init.ops = &meson_mmc_clk_phase_ops;
 	init.flags = CLK_SET_RATE_PARENT;
-	clk_parent[0] = __clk_get_name(clk);
+	clk_parent[0] = __clk_get_name(mmc_ext_clk[1]);
 	init.parent_names = clk_parent;
 	init.num_parents = 1;
 
@@ -642,7 +677,13 @@ static int meson_mmc_clk_init(struct meson_host *host)
 	clk_set_phase(host->tx_clk, 270);
 	clk_set_phase(host->rx_clk, 0);
 
-	return clk_prepare_enable(host->mmc_clk);
+	ret = clk_prepare_enable(host->mmc_clk);
+	if (ret) {
+		dev_dbg(host->dev, "fail to enable mmc clock\n");
+		clk_disable_unprepare(host->core_clk);
+	}
+
+	return ret;
 }
 
 static void meson_mmc_shift_map(unsigned long *map, unsigned long shift)
@@ -1175,6 +1216,39 @@ static const struct mmc_host_ops meson_mmc_ops = {
 	.start_signal_voltage_switch = meson_mmc_voltage_switch,
 };
 
+static int meson_mmc_pins_init(struct meson_host *host)
+{
+	int ret;
+
+	host->pinctrl = devm_pinctrl_get(host->dev);
+	if (IS_ERR(host->pinctrl)) {
+		ret = PTR_ERR(host->pinctrl);
+		dev_warn(host->dev,
+			 "can't get pinctrl, skip it\n");
+		host->pinctrl = NULL;
+		return ret;
+	}
+
+	host->pins_default = pinctrl_lookup_state(host->pinctrl,
+						  PINCTRL_STATE_DEFAULT);
+	if (IS_ERR(host->pins_default)) {
+		ret = PTR_ERR(host->pins_default);
+		dev_warn(host->dev,
+			 "can't get default pinctrl, set null\n");
+		host->pins_default = NULL;
+	}
+
+	host->pins_clk_gate = pinctrl_lookup_state(host->pinctrl,
+						   "clk-gate");
+	if (IS_ERR(host->pins_clk_gate)) {
+		dev_warn(host->dev,
+			 "can't get clk-gate pinctrl, using clk_stop bit\n");
+		host->pins_clk_gate = NULL;
+	}
+
+	return 0;
+}
+
 static int meson_mmc_probe(struct platform_device *pdev)
 {
 	struct resource *res;
@@ -1219,6 +1293,8 @@ static int meson_mmc_probe(struct platform_device *pdev)
 		goto free_host;
 	}
 
+	meson_mmc_clk_register(host);
+
 	irq = platform_get_irq(pdev, 0);
 	if (irq <= 0) {
 		dev_err(&pdev->dev, "failed to get interrupt resource.\n");
@@ -1226,40 +1302,10 @@ static int meson_mmc_probe(struct platform_device *pdev)
 		goto free_host;
 	}
 
-	host->pinctrl = devm_pinctrl_get(&pdev->dev);
-	if (IS_ERR(host->pinctrl)) {
-		ret = PTR_ERR(host->pinctrl);
-		goto free_host;
-	}
-
-	host->pins_default = pinctrl_lookup_state(host->pinctrl,
-						  PINCTRL_STATE_DEFAULT);
-	if (IS_ERR(host->pins_default)) {
-		ret = PTR_ERR(host->pins_default);
-		goto free_host;
-	}
-
-	host->pins_clk_gate = pinctrl_lookup_state(host->pinctrl,
-						   "clk-gate");
-	if (IS_ERR(host->pins_clk_gate)) {
-		dev_warn(&pdev->dev,
-			 "can't get clk-gate pinctrl, using clk_stop bit\n");
-		host->pins_clk_gate = NULL;
-	}
-
-	host->core_clk = devm_clk_get(&pdev->dev, "core");
-	if (IS_ERR(host->core_clk)) {
-		ret = PTR_ERR(host->core_clk);
-		goto free_host;
-	}
-
-	ret = clk_prepare_enable(host->core_clk);
-	if (ret)
-		goto free_host;
-
-	ret = meson_mmc_clk_init(host);
-	if (ret)
-		goto err_core_clk;
+	ret = meson_mmc_pins_init(host);
+	/* FIXME: initial clocks only pinctrl avalaible */
+	if (!ret)
+		meson_mmc_clk_init(host);
 
 	/* set config to sane default */
 	meson_mmc_cfg_init(host);
@@ -1315,7 +1361,6 @@ err_bounce_buf:
 			  host->bounce_buf, host->bounce_dma_addr);
 err_init_clk:
 	clk_disable_unprepare(host->mmc_clk);
-err_core_clk:
 	clk_disable_unprepare(host->core_clk);
 free_host:
 	mmc_free_host(mmc);
