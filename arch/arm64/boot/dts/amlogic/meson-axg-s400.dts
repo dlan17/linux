@@ -104,10 +104,7 @@
 
 /* emmc storage */
 &sd_emmc_c {
-	status = "disabled";
-	pinctrl-0 = <&emmc_pins>;
-	pinctrl-1 = <&emmc_clk_gate_pins>;
-	pinctrl-names = "default", "clk-gate";
+	status = "okay";
 
 	bus-width = <8>;
 	cap-sd-highspeed;
@@ -124,7 +121,7 @@
 
 /* wifi module */
 &sd_emmc_b {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
 
