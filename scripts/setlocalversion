@@ -85,6 +85,7 @@ scm_version()
 		desc=$(git describe --match=$tag 2>/dev/null)
 	fi
 
+	return
 	# If we are at the tagged commit, we ignore it because the version is
 	# well-defined.
 	if [ "${tag}" != "${desc}" ]; then
