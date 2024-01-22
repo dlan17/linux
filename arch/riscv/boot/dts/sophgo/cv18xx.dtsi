@@ -220,6 +220,65 @@
 			snps,axi-max-burst-len = <16>;
 		};
 
+	eth_csrclk: eth_csrclk {
+		clock-output-names = "eth_csrclk";
+		clock-frequency = <250000000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	eth_ptpclk: eth_ptpclk {
+		clock-output-names = "eth_ptpclk";
+		clock-frequency = <50000000>;
+		#clock-cells = <0x0>;
+		compatible = "fixed-clock";
+	};
+
+	stmmac_axi_setup: stmmac-axi-config {
+		snps,wr_osr_lmt = <1>;
+		snps,rd_osr_lmt = <2>;
+		snps,blen = <4 8 16 0 0 0 0>;
+	};
+
+	mtl_rx_setup: rx-queues-config {
+		snps,rx-queues-to-use = <1>;
+		queue0 {};
+	};
+
+	mtl_tx_setup: tx-queues-config {
+		snps,tx-queues-to-use = <1>;
+		queue0 {};
+	};
+
+	ethernet0: ethernet@4070000 {
+		compatible = "cvitek,ethernet";
+		reg = <0x04070000 0x10000>;
+
+		interrupt-names = "macirq";
+		interrupts = <31 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-parent = <&plic>;
+
+		clock-names = "stmmaceth", "ptp_ref";
+		clocks = <&eth_csrclk>, <&eth_ptpclk>;
+		//phy-reset-gpios = <&porta 26 0>;
+
+		tx-fifo-depth = <8192>;
+		rx-fifo-depth = <8192>;
+		/* no hash filter and perfect filter support */
+		snps,multicast-filter-bins = <0>;
+		snps,perfect-filter-entries = <1>;
+
+		snps,txpbl = <8>;
+		snps,rxpbl = <8>;
+		snps,aal;
+
+		snps,axi-config = <&stmmac_axi_setup>;
+		snps,mtl-rx-config = <&mtl_rx_setup>;
+		snps,mtl-tx-config = <&mtl_tx_setup>;
+
+		phy-mode = "rmii";
+	};
+
 		sd:cv-sd@4310000 {
 			compatible = "cvitek,cv180x-sd";
 			reg = <0x4310000 0x1000>;
