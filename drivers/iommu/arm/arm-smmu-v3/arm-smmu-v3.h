@@ -763,6 +763,11 @@ struct arm_smmu_device {
 
 	struct rb_root			streams;
 	struct mutex			streams_mutex;
+
+#ifdef CONFIG_ARCH_ESWIN
+	struct regmap *regmap;
+	int     smmu_irq_clear_reg;
+#endif
 };
 
 struct arm_smmu_stream {
