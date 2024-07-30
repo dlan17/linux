@@ -235,6 +235,17 @@ config PINCTRL_EYEQ5
 	  Pin muxing supports two functions for each pin: first is GPIO, second
 	  is pin-dependent. Pin config is about bias & drive strength.
 
+config PINCTRL_EIC7700
+	tristate "EIC7700 PINCTRL driver"
+	depends on ARCH_ESWIN || COMPILE_TEST
+	select GENERIC_PINCONF
+	select PINMUX
+	select PINCONF
+	select GENERIC_PINCTRL_GROUPS
+	select GENERIC_PINMUX_FUNCTIONS
+	help
+	  say Y here to add pinctrl eic7700 driver
+
 config PINCTRL_GEMINI
 	bool
 	depends on ARCH_GEMINI
