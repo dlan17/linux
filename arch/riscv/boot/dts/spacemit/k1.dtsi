@@ -3,6 +3,8 @@
  * Copyright (C) 2024 Yangyu Chen <cyy@cyyself.name>
  */
 
+#include <dt-bindings/clock/spacemit-k1x-clock.h>
+
 /dts-v1/;
 / {
 	#address-cells = <2>;
@@ -318,6 +320,57 @@
 		};
 	};
 
+	clocks {
+		#address-cells = <0x2>;
+		#size-cells = <0x2>;
+		ranges;
+
+		vctcxo_24: clock-vctcxo_24 {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <24000000>;
+			clock-output-names = "vctcxo_24";
+		};
+		vctcxo_3: clock-vctcxo_3 {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <3000000>;
+			clock-output-names = "vctcxo_3";
+		};
+		vctcxo_1: clock-vctcxo_1 {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <1000000>;
+			clock-output-names = "vctcxo_1";
+		};
+		pll1_2457p6_vco: clock-pll1_2457p6_vco {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <2457600000>;
+			clock-output-names = "pll1_2457p6_vco";
+		};
+		clk_32k: clock-clk32k {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <32000>;
+			clock-output-names = "clk_32k";
+		};
+
+		pll_clk_cluster0: clock-pll_clk_cluster0 {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <10000000>;
+			clock-output-names = "pll_clk_cluster0";
+		};
+
+		pll_clk_cluster1: clock-pll_clk_cluster1 {
+			#clock-cells = <0>;
+			compatible = "fixed-clock";
+			clock-frequency = <10000000>;
+			clock-output-names = "pll_clk_cluster1";
+		};
+	};
+
 	soc {
 		compatible = "simple-bus";
 		interrupt-parent = <&plic>;
@@ -432,6 +485,40 @@
 		pinctrl: pinctrl@d401e000 {
 			compatible = "spacemit,k1-pinctrl";
 			reg = <0x0 0xd401e000 0x0 0x400>;
+		};
+
+		ccu: clock-controller@d4050000 {
+			compatible = "spacemit,k1x-clock";
+			reg = <0x0 0xd4050000 0x0 0x209c>,
+				<0x0 0xd4282800 0x0 0x400>,
+				<0x0 0xd4015000 0x0 0x1000>,
+				<0x0 0xd4090000 0x0 0x1000>,
+				<0x0 0xd4282c00 0x0 0x400>,
+				<0x0 0xd8440000 0x0 0x98>,
+				<0x0 0xc0000000 0x0 0x4280>,
+				<0x0 0xf0610000 0x0 0x20>,
+				<0x0 0xc0880000 0x0 0x2050>;
+			reg-names = "mpmu", "apmu", "apbc", "apbs", "ciu", "dciu", "ddrc", "apbc2", "rcpu";
+			clocks = <&vctcxo_24>, <&vctcxo_3>, <&vctcxo_1>, <&pll1_2457p6_vco>,
+				<&clk_32k>;
+			clock-names = "vctcxo_24", "vctcxo_3", "vctcxo_1", "pll1_2457p6_vco",
+				"clk_32k";
+			#clock-cells = <1>;
+			status = "okay";
+		};
+
+
+		sdhci2: sdh@d4281000 {
+			compatible = "spacemit,k1-x-sdhci";
+			reg = <0x0 0xd4281000 0x0 0x200>;
+			interrupts = <101>;
+			interrupt-parent = <&plic>;
+			clocks = <&ccu CLK_SDH2>,
+					 <&ccu CLK_SDH_AXI>;
+			clock-names = "sdh-io", "sdh-core";
+//			interconnects = <&dram_range0>;
+//			interconnect-names = "dma-mem";
+			status = "disabled";
 		};
 
 		plic: interrupt-controller@e0000000 {
