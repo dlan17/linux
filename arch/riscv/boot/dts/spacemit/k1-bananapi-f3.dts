@@ -5,7 +5,6 @@
 
 #include "k1.dtsi"
 #include "k1-pinctrl.dtsi"
-#include <dt-bindings/mmc/k1x_sdhci.h>
 
 / {
 	model = "Banana Pi BPI-F3";
@@ -42,13 +41,6 @@
 	mmc-hs400-enhanced-strobe;
 	no-sd;
 	no-sdio;
-	spacemit,sdh-quirks = <(
-			SDHCI_QUIRK_BROKEN_CARD_DETECTION |
-			SDHCI_QUIRK_BROKEN_TIMEOUT_VAL
-			)>;
-	spacemit,sdh-quirks2 = <(
-			SDHCI_QUIRK2_PRESET_VALUE_BROKEN
-			)>;
 	spacemit,sdh-freq = <375000000>;
 	status = "okay";
 };
