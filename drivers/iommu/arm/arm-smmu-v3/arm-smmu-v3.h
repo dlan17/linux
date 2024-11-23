@@ -13,6 +13,9 @@
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
 #include <linux/sizes.h>
+#include <linux/mfd/syscon.h>
+#include <linux/mmu_notifier.h>
+#include <linux/regmap.h>
 
 struct arm_smmu_device;
 

@@ -34,11 +34,9 @@
 
 #ifdef CONFIG_ARCH_ESWIN
 #include <dt-bindings/memory/eic7700-sid.h>
-#include <linux/mfd/syscon.h>
-#include <linux/regmap.h>
-
 #define ESWIN_SMMU_IRQ_CLEAR_REG	1
 
+#define __iomb()		
 /* smmu interrupt clear bits */
 #define TCU_U84_EVENT_Q_IRPT_NS_CLR_BIT     9
 #define TCU_U84_PRI_Q_IRPT_NS_CLR_BIT       10
@@ -219,7 +217,7 @@ static int queue_poll(struct arm_smmu_queue_poll *qp)
 		return -ETIMEDOUT;
 
 	if (qp->wfe) {
-		wfe();
+		//wfe();
 	} else if (++qp->spin_cnt < ARM_SMMU_POLL_SPIN_COUNT) {
 		cpu_relax();
 	} else {
