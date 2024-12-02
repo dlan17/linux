@@ -4006,7 +4006,7 @@
 			/* sdhci-caps-mask =  <0x2 0x3000000>; */
 			/* smmu */
 			#size-cells = <2>;
-			//iommus = <&smmu0 EIC7700_SID_EMMC0>;
+			iommus = <&smmu0 EIC7700_SID_EMMC0>;
 			tbus = <EIC7700_TBUID_EMMC>;
 			dma-ranges = <0x0 0x00000000 0x0 0xc0000000 0x1 0x0>;
 			eswin,hsp_sp_csr = <&d0_hsp_sp_csr 0x1038>;
