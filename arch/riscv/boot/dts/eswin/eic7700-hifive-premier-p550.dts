@@ -219,7 +219,7 @@
 
 &pcie {
 	/* GPIO12 PCIE PRSNT input */
-	status = "okay";
+	status = "disabled";
 };
 
 &d0_npu{

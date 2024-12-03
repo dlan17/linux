@@ -3901,7 +3901,6 @@
 
 			#address-cells = <3>;
 			#size-cells = <2>;
-			#interrupt-cells = <1>;
 			reg = <0x0 0x54000000 0x0 0x4000000>,	/* IP registers */
 			      <0x0 0x40000000 0x0 0x800000>,	/* Configuration space */
 			      <0x0 0x50000000 0x0 0x100000>;
