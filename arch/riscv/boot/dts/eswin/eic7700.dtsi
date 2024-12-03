@@ -3597,6 +3597,7 @@
 			clock-names = "app", "csr","tx";
 			resets = <&d0_reset HSPDMA_RST_CTRL SW_HSP_ETH0_ARSTN>;
 			reset-names = "ethrst";
+			iommus = <&smmu0 EIC7700_SID_ETH0>;
 			tbus = <EIC7700_TBUID_ETH>;
 			eswin,hsp_sp_csr = <&d0_hsp_sp_csr 0x1030 0x100 0x108>;
 			eswin,syscrg_csr = <&d0_sys_crg 0x148 0x14c>;
@@ -3625,6 +3626,7 @@
 			clock-names = "app", "csr","tx";
 			resets = <&d0_reset HSPDMA_RST_CTRL SW_HSP_ETH1_ARSTN>;
 			reset-names = "ethrst";
+			iommus = <&smmu0 EIC7700_SID_ETH1>;
 			tbus = <EIC7700_TBUID_ETH>;
 			eswin,hsp_sp_csr = <&d0_hsp_sp_csr 0x1034 0x200 0x208>;
 			eswin,syscrg_csr = <&d0_sys_crg 0x148 0x14c>;
