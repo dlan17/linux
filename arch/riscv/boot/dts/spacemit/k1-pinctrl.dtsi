@@ -20,4 +20,16 @@
 			drive-strength = <32>;
 		};
 	};
+
+	uart8_2_cfg: uart8-2-cfg {
+		uart8-2-pins {
+			pinmux = <K1_PADCONF(75, 4)>,
+				 <K1_PADCONF(76, 4)>,
+				 <K1_PADCONF(77, 4)>,
+				 <K1_PADCONF(78, 4)>;
+
+			bias-pull-up = <0>;
+			drive-strength = <32>;
+		};
+	};
 };
