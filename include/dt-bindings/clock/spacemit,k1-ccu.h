@@ -78,6 +78,9 @@
 #define CLK_APB			31
 #define CLK_WDT_BUS		32
 
+/*	MPMU resets	*/
+#define RST_WDT			0
+
 /*	APBC clocks	*/
 #define CLK_UART0		0
 #define CLK_UART2		1
@@ -180,6 +183,108 @@
 #define CLK_TSEN_BUS		98
 #define CLK_IPC_AP2AUD_BUS	99
 
+/*	APBC resets	*/
+#define RST_UART0		0
+#define RST_UART2		1
+#define RST_UART3		2
+#define RST_UART4		3
+#define RST_UART5		4
+#define RST_UART6		5
+#define RST_UART7		6
+#define RST_UART8		7
+#define RST_UART9		8
+#define RST_GPIO		9
+#define RST_PWM0		10
+#define RST_PWM1		11
+#define RST_PWM2		12
+#define RST_PWM3		13
+#define RST_PWM4		14
+#define RST_PWM5		15
+#define RST_PWM6		16
+#define RST_PWM7		17
+#define RST_PWM8		18
+#define RST_PWM9		19
+#define RST_PWM10		20
+#define RST_PWM11		21
+#define RST_PWM12		22
+#define RST_PWM13		23
+#define RST_PWM14		24
+#define RST_PWM15		25
+#define RST_PWM16		26
+#define RST_PWM17		27
+#define RST_PWM18		28
+#define RST_PWM19		29
+#define RST_SSP3		30
+#define RST_RTC			31
+#define RST_TWSI0		32
+#define RST_TWSI1		33
+#define RST_TWSI2		34
+#define RST_TWSI4		35
+#define RST_TWSI5		36
+#define RST_TWSI6		37
+#define RST_TWSI7		38
+#define RST_TWSI8		39
+#define RST_TIMERS1		40
+#define RST_TIMERS2		41
+#define RST_AIB			42
+#define RST_ONEWIRE		43
+#define RST_SSPA0		44
+#define RST_SSPA1		45
+#define RST_DRO			46
+#define RST_IR			47
+#define RST_TSEN		48
+#define RST_IPC_AP2AUD		49
+#define RST_CAN0		50
+#define RST_CAN0_BUS		51
+#define RST_UART0_BUS		52
+#define RST_UART2_BUS		53
+#define RST_UART3_BUS		54
+#define RST_UART4_BUS		55
+#define RST_UART5_BUS		56
+#define RST_UART6_BUS		57
+#define RST_UART7_BUS		58
+#define RST_UART8_BUS		59
+#define RST_UART9_BUS		60
+#define RST_GPIO_BUS		61
+#define RST_PWM0_BUS		62
+#define RST_PWM1_BUS		63
+#define RST_PWM2_BUS		64
+#define RST_PWM3_BUS		65
+#define RST_PWM4_BUS		66
+#define RST_PWM5_BUS		67
+#define RST_PWM6_BUS		68
+#define RST_PWM7_BUS		69
+#define RST_PWM8_BUS		70
+#define RST_PWM9_BUS		71
+#define RST_PWM10_BUS		72
+#define RST_PWM11_BUS		73
+#define RST_PWM12_BUS		74
+#define RST_PWM13_BUS		75
+#define RST_PWM14_BUS		76
+#define RST_PWM15_BUS		77
+#define RST_PWM16_BUS		78
+#define RST_PWM17_BUS		79
+#define RST_PWM18_BUS		80
+#define RST_PWM19_BUS		81
+#define RST_SSP3_BUS		82
+#define RST_RTC_BUS		83
+#define RST_TWSI0_BUS		84
+#define RST_TWSI1_BUS		85
+#define RST_TWSI2_BUS		86
+#define RST_TWSI4_BUS		87
+#define RST_TWSI5_BUS		88
+#define RST_TWSI6_BUS		89
+#define RST_TWSI7_BUS		90
+#define RST_TWSI8_BUS		91
+#define RST_TIMERS1_BUS		92
+#define RST_TIMERS2_BUS		93
+#define RST_AIB_BUS		94
+#define RST_ONEWIRE_BUS		95
+#define RST_SSPA0_BUS		96
+#define RST_SSPA1_BUS		97
+#define RST_TSEN_BUS		98
+#define RST_IPC_AP2AUD_BUS	99
+
 /*	APMU clocks	*/
 #define CLK_CCI550		0
 #define CLK_CPU_C0_HI		1
@@ -243,5 +348,103 @@
 #define CLK_DPU_SPI_ACLK	59
 #define CLK_V2D			60
 #define CLK_EMMC_BUS		61
+
+/*	APMU resets	*/
+
+#define RST_CCI550		0
+#define RST_CPU_C0_HI		1
+#define RST_CPU_C0_CORE		2
+#define RST_CPU_C0_ACE		3
+#define RST_CPU_C0_TCM		4
+#define RST_CPU_C1_HI		5
+#define RST_CPU_C1_CORE		6
+#define RST_CPU_C1_ACE		7
+#define RST_CCIC_4X		8
+#define RST_CCIC1PHY		9
+#define RST_SDH_AXI		10
+#define RST_SDH0		11
+#define RST_SDH1		12
+#define RST_SDH2		13
+#define RST_USB_P1		14
+#define RST_USB_AXI		15
+#define RST_USB30		16
+#define RST_QSPI		17
+#define RST_QSPI_BUS		18
+#define RST_DMA			19
+#define RST_AES			20
+#define RST_VPU			21
+#define RST_GPU			22
+#define RST_EMMC		23
+#define RST_EMMC_X		24
+#define RST_AUDIO		25
+#define RST_HDMI		26
+#define RST_PMUA_ACLK		27
+#define RST_PCIE0_MASTER	28
+#define RST_PCIE0_SLAVE		29
+#define RST_PCIE0_DBI		30
+#define RST_PCIE1_MASTER	31
+#define RST_PCIE1_SLAVE		32
+#define RST_PCIE1_DBI		33
+#define RST_PCIE2_MASTER	34
+#define RST_PCIE2_SLAVE		35
+#define RST_PCIE2_DBI		36
+#define RST_EMAC0_BUS		37
+#define RST_EMAC0_PTP		38
+#define RST_EMAC1_BUS		39
+#define RST_EMAC1_PTP		40
+#define RST_JPG			41
+#define RST_CCIC2PHY		42
+#define RST_CCIC3PHY		43
+#define RST_CSI			44
+#define RST_CAMM0		45
+#define RST_CAMM1		46
+#define RST_CAMM2		47
+#define RST_ISP_CPP		48
+#define RST_ISP_BUS		49
+#define RST_ISP			50
+#define RST_DPU_MCLK		51
+#define RST_DPU_ESC		52
+#define RST_DPU_BIT		53
+#define RST_DPU_PXCLK		54
+#define RST_DPU_HCLK		55
+#define RST_DPU_SPI		56
+#define RST_DPU_SPI_HBUS	57
+#define RST_DPU_SPIBUS		58
+#define RST_DPU_SPI_ACLK	59
+#define RST_V2D			60
+#define RST_EMMC_BUS		61
+
+/*	RCPU resets	*/
+
+#define RST_RCPU_SSP0		0
+#define RST_RCPU_I2C0		1
+#define RST_RCPU_UART1		2
+#define RST_RCPU_IR		3
+#define RST_RCPU_CAN		4
+#define RST_RCPU_UART0		5
+#define RST_RCPU_HDMI_AUDIO	6
+
+/*	RCPU2 resets	*/
+
+#define RST_RCPU2_PWM0		0
+#define RST_RCPU2_PWM1		1
+#define RST_RCPU2_PWM2		2
+#define RST_RCPU2_PWM3		3
+#define RST_RCPU2_PWM4		4
+#define RST_RCPU2_PWM5		5
+#define RST_RCPU2_PWM6		6
+#define RST_RCPU2_PWM7		7
+#define RST_RCPU2_PWM8		8
+#define RST_RCPU2_PWM9		9
+
+/*	APBC2 resets	*/
+
+#define RST_APBC2_UART1		0
+#define RST_APBC2_SSP2		1
+#define RST_APBC2_TWSI3		2
+#define RST_APBC2_RTC		3
+#define RST_APBC2_TIMERS0	4
+#define RST_APBC2_KPC		5
+#define RST_APBC2_GPIO		6
 
 #endif /* _DT_BINDINGS_SPACEMIT_CCU_H_ */
