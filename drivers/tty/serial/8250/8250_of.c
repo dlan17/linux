@@ -24,6 +24,7 @@
 
 struct of_serial_info {
 	struct clk *clk;
+	struct clk *bus_clk;
 	struct reset_control *rst;
 	int type;
 	int line;
@@ -122,15 +123,33 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 		goto err_pmruntime;
 
 	/* Get clk rate through clk driver if present */
+	printk(" ==== Before: uartclk = %u\n", port->uartclk);
 	if (!port->uartclk) {
-		info->clk = devm_clk_get_enabled(dev, NULL);
+		unsigned long rate;
+
+		printk(" ==== getting core clock\n");
+		info->clk = devm_clk_get_enabled(dev, "core");
 		if (IS_ERR(info->clk)) {
-			ret = dev_err_probe(dev, PTR_ERR(info->clk), "failed to get clock\n");
+			ret = dev_err_probe(dev, PTR_ERR(info->clk),
+					    "failed to get clock\n");
+			goto err_pmruntime;
+		}
+
+		printk(" ==== getting bus clock\n");
+		info->bus_clk = devm_clk_get_enabled(dev, "bus");
+		if (IS_ERR(info->bus_clk)) {
+			ret = dev_err_probe(dev, PTR_ERR(info->bus_clk),
+					    "failed to get bus clock\n");
 			goto err_pmruntime;
 		}
 
 		port->uartclk = clk_get_rate(info->clk);
+		printk(" ==== uartclk is now = %u\n", port->uartclk);
+
+		rate = clk_get_rate(info->bus_clk);
+		printk(" ==== bus clock is now = %u\n", rate);
 	}
+
 	/* If current-speed was set, then try not to change it. */
 	if (of_property_read_u32(np, "current-speed", &spd) == 0)
 		port->custom_divisor = port->uartclk / (16 * spd);
@@ -139,13 +158,18 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 	if (of_device_is_compatible(np, "mrvl,mmp-uart"))
 		port->regshift = 2;
 
+	printk(" ==== getting reset\n");
 	info->rst = devm_reset_control_get_optional_shared(&ofdev->dev, NULL);
+	if (!info->rst)
+		printk(" ==== optional reset not found\n");
 	if (IS_ERR(info->rst)) {
 		ret = PTR_ERR(info->rst);
+		printk(" ==== error %d getting reset\n", ret);
 		goto err_pmruntime;
 	}
 
 	ret = reset_control_deassert(info->rst);
+	printk(" ==== deasserting reset returned %d\n", ret);
 	if (ret)
 		goto err_pmruntime;
 
