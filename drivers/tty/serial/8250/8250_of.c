@@ -145,6 +145,9 @@ static int of_platform_serial_setup(struct platform_device *ofdev,
 
 		port->uartclk = clk_get_rate(info->clk);
 		printk(" ==== uartclk is now = %u\n", port->uartclk);
+		clk_set_rate(info->clk, 14857000);
+		port->uartclk = clk_get_rate(info->clk);
+		printk(" ==== uartclk is after = %u\n", port->uartclk);
 
 		rate = clk_get_rate(info->bus_clk);
 		printk(" ==== bus clock is now = %u\n", rate);
