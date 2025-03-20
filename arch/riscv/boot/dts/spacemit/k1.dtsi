@@ -455,7 +455,6 @@
 			         <&syscon_apbc CLK_UART8_BUS>;
 			clock-names = "core", "bus";
 			resets = <&syscon_apbc RST_UART8>;
-			clock-frequency = <14857000>;
 			reg-shift = <2>;
 			reg-io-width = <4>;
 			status = "disabled";
