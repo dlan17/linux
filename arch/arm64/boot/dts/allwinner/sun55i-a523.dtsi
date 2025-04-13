@@ -158,6 +158,17 @@
 				allwinner,pinmux = <2>;
 				function = "uart0";
 			};
+
+			emac0_pins: emac0-pins {
+				pins = "PH0", "PH1", "PH2", "PH3",
+					"PH4", "PH5", "PH6", "PH7",
+					"PH9", "PH10","PH13","PH14",
+					"PH15","PH16","PH17","PH18";
+				allwinner,pinmux = <5>;
+				drive-strength = <40>;
+				function = "emac0";
+				bias-pull-up;
+			};
 		};
 
 		ccu: clock-controller@2001000 {
@@ -409,6 +420,24 @@
 			#size-cells = <0>;
 		};
 
+		syscon: syscon@3000000 {
+			compatible = "allwinner,sun55i-a523-system-control";
+			reg = <0x03000000 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+			ranges;
+/*
+			sram_c: sram@28000 {
+				compatible = "mmio-sram";
+				reg = <0x00028000 0x30000>;
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges = <0 0x00028000 0x30000>;
+			};
+*/
+		};
+
+
 		gic: interrupt-controller@3400000 {
 			compatible = "arm,gic-v3";
 			#address-cells = <1>;
@@ -519,6 +548,25 @@
 			phys = <&usbphy 1>;
 			phy-names = "usb";
 			status = "disabled";
+		};
+
+		emac0: ethernet@4500000 {
+			compatible = "allwinner,sun55i-a523-emac";
+			reg = <0x04500000 0x10000>;
+			interrupts = <GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "macirq";
+			clocks = <&ccu CLK_BUS_EMAC0>;
+			clock-names = "stmmaceth";
+			resets = <&ccu RST_BUS_EMAC0>;
+			reset-names = "stmmaceth";
+			syscon = <&syscon>;
+			status = "disabled";
+
+			mdio0: mdio {
+				compatible = "snps,dwmac-mdio";
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
 		};
 
 		r_ccu: clock-controller@7010000 {
